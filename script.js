@@ -1,12 +1,10 @@
-const NODE_RADIUS = 18;
-
 const alphabet = ['0', '1'];
 
 let selectedStates = [];
 let selectedEdges = [];
 
 function clearSelection() {
-    selectedStates.forEach(n => n.removeClass('node-selected'));
+    selectedStates.forEach(n => n.removeClass('state-selected'));
     selectedEdges.forEach(n => n.removeClass('edge-selected'));
     selectedStates = [];
     selectedEdges = [];
@@ -33,8 +31,8 @@ const cy = cytoscape({
                 'label': 'data(label)',
                 'text-valign': 'center',
                 'color': 'black',
-                'width': 2 * NODE_RADIUS,
-                'height': 2 * NODE_RADIUS,
+                'width': 36,
+                'height': 36,
             }
         },
         {
@@ -77,7 +75,7 @@ const cy = cytoscape({
             }
         },
         {
-            selector: '.node-selected',
+            selector: '.state-selected',
             style: {
                 'border-color': 'dodgerblue',
                 'color': 'dodgerblue'
@@ -106,7 +104,7 @@ const cy = cytoscape({
             }
         },
         {
-            selector: '.phantom-node',
+            selector: '.phantom-state',
             style: {
                 'border-color': 'lightgrey',
                 'color': 'lightgrey'
@@ -125,10 +123,10 @@ const cy = cytoscape({
     }
 });
 
-function uniqueNodeName() {
-    const nodeNames = cy.nodes().map(node => node.data().label);
+function uniqueStateName() {
+    const stateNames = cy.nodes().map(state => state.data().label);
     let i = 0;
-    while (nodeNames.includes(`q${i}`)) {
+    while (stateNames.includes(`q${i}`)) {
         i += 1;
     }
     return `q${i}`;
@@ -138,45 +136,53 @@ function phantomEdges() {
     return cy.edges().filter(edge => edge.classes().includes('phantom-edge'));
 }
 
-function phantomNodes() {
-    return cy.nodes().filter(node => node.classes().includes('phantom-node'));
+function phantomStates() {
+    return cy.nodes().filter(state => state.classes().includes('phantom-state'));
+}
+
+function addState() {
+    const newName = uniqueStateName();
+    cy.add({ group: 'nodes', data: { id: newName, label: newName } });
+    return cy.getElementById(newName);
 }
 
 cy.on('tap', 'node', function (event) {
+    clearContextMenus();
     if (isCreatingTransition) {
-        if (phantomNodes().includes(event.target)) {
-            // clicked on phantom node
-            event.target.removeClass('phantom-node');
+        if (phantomStates().includes(event.target)) {
+            // clicked on phantom state
+            event.target.removeClass('phantom-state');
             event.target.data('label', event.target.id());
             phantomEdges().forEach(edge => edge.removeClass('phantom-edge'));
         } else {
-            // clicked on existing node
-            phantomNodes().forEach(node => node.remove());
+            // clicked on existing state
+            phantomStates().forEach(state => state.remove());
             phantomEdges().forEach(edge => edge.removeClass('phantom-edge'));
         }
         isCreatingTransition = false;
         clearSelection();
     } else {
-        const node = event.target;
+        const state = event.target;
         if (event.originalEvent.shiftKey) {
-            if (selectedStates.includes(node)) {
-                selectedStates.splice(selectedStates.indexOf(node), 1);
-                node.removeClass('node-selected');
+            if (selectedStates.includes(state)) {
+                selectedStates.splice(selectedStates.indexOf(state), 1);
+                state.removeClass('state-selected');
             } else {
-                selectedStates.push(node);
-                node.addClass('node-selected');
+                selectedStates.push(state);
+                state.addClass('state-selected');
             }
         } else {
-            selectedStates.forEach(n => n.removeClass('node-selected'));
+            selectedStates.forEach(n => n.removeClass('state-selected'));
             selectedEdges.forEach(n => n.removeClass('edge-selected'));
-            selectedStates = [node];
+            selectedStates = [state];
             selectedEdges = [];
-            node.addClass('node-selected');
+            state.addClass('state-selected');
         }
     }
 });
 
 cy.on('tap', 'edge', function (event) {
+    clearContextMenus();
     if (isCreatingTransition) {
         return;
     }
@@ -190,9 +196,7 @@ cy.on('tap', 'edge', function (event) {
             edge.addClass('edge-selected');
         }
     } else {
-        selectedStates.forEach(n => n.removeClass('node-selected'));
-        selectedEdges.forEach(n => n.removeClass('edge-selected'));
-        selectedStates = [];
+        clearSelection();
         selectedEdges = [edge];
         edge.addClass('edge-selected');
     }
@@ -211,8 +215,8 @@ cy.on('tap', (event) => {
 window.addEventListener('keydown', function (event) {
     if (isCreatingTransition) {
         if (event.key === 'Escape') {
-            cy.nodes().filter(node => node.data().label === '').forEach(node => node.remove());
-            cy.edges().filter(edge => edge.classes().includes('phantom-edge')).forEach(edge => edge.remove());
+            phantomStates().forEach(state => state.remove());
+            phantomEdges().forEach(edge => edge.remove());
             isCreatingTransition = false;
         }
     }
@@ -220,28 +224,17 @@ window.addEventListener('keydown', function (event) {
         if (alphabet.includes(event.key)) {
             isCreatingTransition = true;
             const pos = selectedStates[0].position();
-            const newName = uniqueNodeName();
-            cy.add([
-                { group: 'nodes', data: { id: newName, label: '' }, classes: 'phantom-node' },
-            ]);
-            const phantomState = cy.getElementById(newName);
+            const phantomState = addState();
+            phantomState.addClass('phantom-state');
             phantomState.position({ x: pos.x + 5, y: pos.y + 5 });
-            selectedStates.forEach(node => {
+            selectedStates.forEach(state => {
                 cy.add([
-                    { group: 'edges', data: { source: node.id(), target: newName, label: event.key }, classes: 'phantom-edge' }
+                    { group: 'edges', data: { source: state.id(), target: phantomState.id(), label: event.key }, classes: 'phantom-edge' }
                 ]);
             });
         } else {
             // TODO: suggest adding symbol to alphabet
         }
-    }
-    if (event.key === 'n') {
-        const newNodeId = 'q' + (cy.nodes().length);
-        cy.add({
-            group: 'nodes',
-            data: { id: newNodeId, label: newNodeId },
-            position: { x: 500, y: 400 },
-        });
     }
 });
 
@@ -257,16 +250,16 @@ document.addEventListener('mousemove', function (event) {
     if (!isCreatingTransition) {
         return;
     }
-    const phantomState = phantomNodes()[0];
+    const phantomState = phantomStates()[0];
     phantomState.position(canvasPosition(event.clientX, event.clientY));
-    const regularStates = cy.nodes().filter(node => node !== phantomState);
-    for (const node of regularStates) {
-        const bbox = node.renderedBoundingBox();
+    const regularStates = cy.nodes().filter(state => state !== phantomState);
+    for (const state of regularStates) {
+        const bbox = state.renderedBoundingBox();
         if (event.clientX >= bbox.x1 && event.clientX <= bbox.x2 && event.clientY >= bbox.y1 && event.clientY <= bbox.y2) {
             phantomEdges().forEach(edge => {
                 const data = edge.data();
                 edge.remove();
-                cy.add({ group: 'edges', data: { id: data.id, source: data.source, target: node.id(), label: data.label }, classes: 'phantom-edge' });
+                cy.add({ group: 'edges', data: { id: data.id, source: data.source, target: state.id(), label: data.label }, classes: 'phantom-edge' });
             })
             phantomState.addClass('invisible');
             return;
@@ -282,7 +275,7 @@ document.addEventListener('mousemove', function (event) {
 
 let addAlphabetItemInputVisible = false;
 
-document.querySelector('#add-alphabet-item-button').addEventListener('click', function (_) {
+document.querySelector('#add-alphabet-item-button').addEventListener('click', function () {
     const inputContainer = document.querySelector('#add-alphabet-item-input-container');
     const addAlphabetItemButton = document.querySelector('#add-alphabet-item-button');
     if (addAlphabetItemInputVisible) {
@@ -364,50 +357,73 @@ document.addEventListener('click', function (event) {
     }
 });
 
-document.querySelector('#sidebar').addEventListener('click', function (_) {
+document.querySelector('#sidebar').addEventListener('click', function () {
     clearSelection();
 });
 
 function clearContextMenus() {
     document.getElementById('edge-context-menu').style.display = 'none';
-    document.getElementById('node-context-menu').style.display = 'none';
+    document.getElementById('state-context-menu').style.display = 'none';
     document.getElementById('common-context-menu').style.display = 'none';
+    document.getElementById('canvas-context-menu').style.display = 'none';
 }
 
-function showNodeContextMenu(event) {
-    const ctxMenu = document.getElementById('node-context-menu');
+function initContextMenuListeners() {
+    document.getElementById('state-ctx-delete').addEventListener('click', function () {
+        selectedStates.forEach(state => state.remove());
+        clearSelection();
+        clearContextMenus();
+    });
+    document.getElementById('edge-ctx-delete').addEventListener('click', function () {
+        selectedEdges.forEach(edge => edge.remove());
+        clearSelection();
+        clearContextMenus();
+    });
+    document.getElementById('common-ctx-delete').addEventListener('click', function () {
+        selectedEdges.forEach(edge => edge.remove());
+        selectedStates.forEach(state => state.remove());
+        clearSelection();
+        clearContextMenus();
+    });
+    document.getElementById('canvas-ctx-new-state').addEventListener('click', function () {
+        const ctxMenu = document.getElementById('canvas-context-menu');
+        const rect = ctxMenu.getBoundingClientRect();
+        const newState = addState();
+        newState.position(canvasPosition(rect.left + 10, rect.top + 10));
+        ctxMenu.style.display = 'none';
+        clearSelection();
+        clearContextMenus();
+    });
+}
+
+function showStateContextMenu(event) {
+    const ctxMenu = document.getElementById('state-context-menu');
     ctxMenu.style.top = event.pageY + 'px';
     ctxMenu.style.left = event.pageX + 'px';
     ctxMenu.style.width = '100px';
     ctxMenu.style.display = 'block';
 
-    const startCheckbox = document.getElementById('node-ctx-start');
-    const acceptingCheckbox = document.getElementById('node-ctx-accepting');
+    const startCheckbox = document.getElementById('state-ctx-start');
+    const acceptingCheckbox = document.getElementById('state-ctx-accepting');
 
-    startCheckbox.checked = !selectedStates.some(node => !node.classes().includes('start'));
-    acceptingCheckbox.checked = !selectedStates.some(node => !node.classes().includes('accept'));
+    startCheckbox.checked = selectedStates.every(state => state.classes().includes('start'));
+    acceptingCheckbox.checked = selectedStates.every(state => state.classes().includes('accept'));
 
-    startCheckbox.onchange = function() {
+    startCheckbox.onchange = function () {
         if (startCheckbox.checked) {
-            selectedStates.forEach(node => node.addClass('start'));
+            selectedStates.forEach(state => state.addClass('start'));
         } else {
-            selectedStates.forEach(node => node.removeClass('start'));
+            selectedStates.forEach(state => state.removeClass('start'));
         }
     };
 
-    acceptingCheckbox.onchange = function() {
+    acceptingCheckbox.onchange = function () {
         if (acceptingCheckbox.checked) {
-            selectedStates.forEach(node => node.addClass('accept'));
+            selectedStates.forEach(state => state.addClass('accept'));
         } else {
-            selectedStates.forEach(node => node.removeClass('accept'));
+            selectedStates.forEach(state => state.removeClass('accept'));
         }
     };
-
-    document.getElementById('node-ctx-delete').addEventListener('click', function() {
-        selectedStates.forEach(node => node.remove());
-        clearSelection();
-        ctxMenu.style.display = 'none';
-    });
 }
 
 function showEdgeContextMenu(event) {
@@ -416,12 +432,6 @@ function showEdgeContextMenu(event) {
     ctxMenu.style.left = event.pageX + 'px';
     ctxMenu.style.width = '100px';
     ctxMenu.style.display = 'block';
-
-    document.getElementById('edge-ctx-delete').addEventListener('click', function() {
-        selectedEdges.forEach(edge => edge.remove());
-        clearSelection();
-        ctxMenu.style.display = 'none';
-    });
 }
 
 function showCommonContextMenu(event) {
@@ -430,35 +440,29 @@ function showCommonContextMenu(event) {
     ctxMenu.style.left = event.pageX + 'px';
     ctxMenu.style.width = '100px';
     ctxMenu.style.display = 'block';
-
-    document.getElementById('common-ctx-delete').addEventListener('click', function() {
-        selectedEdges.forEach(edge => edge.remove());
-        selectedStates.forEach(node => node.remove());
-        clearSelection();
-        ctxMenu.style.display = 'none';
-    });
 }
 
-cy.on('cxttap', 'node', function(event) {
-    const node = event.target;
-    if (!selectedStates.includes(node)) {
+cy.on('cxttap', 'node', function (event) {
+    const state = event.target;
+    clearContextMenus();
+    if (!selectedStates.includes(state)) {
         clearSelection();
         clearContextMenus();
-        selectedStates = [node];
-        node.addClass('node-selected');
-        showNodeContextMenu(event.originalEvent);
+        selectedStates = [state];
+        state.addClass('state-selected');
+        showStateContextMenu(event.originalEvent);
     } else if (selectedEdges.length === 0) {
-        showNodeContextMenu(event.originalEvent);
+        showStateContextMenu(event.originalEvent);
     } else {
         showCommonContextMenu(event.originalEvent);
     }
 });
 
-cy.on('cxttap', 'edge', function(event) {
+cy.on('cxttap', 'edge', function (event) {
     const edge = event.target;
+    clearContextMenus();
     if (!selectedEdges.includes(edge)) {
         clearSelection();
-        clearContextMenus();
         selectedEdges = [edge];
         edge.addClass('edge-selected');
         showEdgeContextMenu(event.originalEvent);
@@ -469,7 +473,20 @@ cy.on('cxttap', 'edge', function(event) {
     }
 });
 
+cy.on('cxttap', function (event) {
+    if (event.target === cy) {
+        const ctxMenu = document.getElementById('canvas-context-menu');
+        clearContextMenus();
+        clearSelection();
+        ctxMenu.style.top = event.originalEvent.pageY + 'px';
+        ctxMenu.style.left = event.originalEvent.pageX + 'px';
+        ctxMenu.style.width = '100px';
+        ctxMenu.style.display = 'block';
+    }
+});
+
 document.addEventListener('DOMContentLoaded', function () {
+    initContextMenuListeners();
     renderAlphabet();
 });
 
