@@ -104,10 +104,12 @@
                                         <button type="button" id="simulation-play-button" class="btn btn-success">
                                             <span class="fas fa-play"></span>
                                         </button>
+                                        <!-- TODO: disable stop button until simulation is started -->
                                         <button type="button" id="simulation-stop-button" class="btn btn-danger">
                                             <span class="fas fa-stop"></span>
                                         </button>
                                     </div>
+                                    <small id="input-word-error-text" class="text-danger pt-2" style="display: none;"></small>
                                     <div class="form-group mt-3 me-3">
                                         <input type="range" class="form-range" id="simulation-speed" min="1" max="10" step="1">
                                         <div class="d-flex justify-content-between">

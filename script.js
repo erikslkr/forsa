@@ -326,6 +326,7 @@ function renderAlphabet() {
             // TODO: adjust this for transitions with multiple symbols
             cy.edges().filter(edge => edge.data().label === symbol).forEach(edge => edge.remove());
             // TODO: error when alphabet becomes empty
+            validateInputWord();
             updateDeterminismIndicator();
         })
         alphabetContainer.appendChild(listItem);
@@ -336,6 +337,7 @@ function addAlphabetItem(symbol) {
     alphabet.push(symbol);
     alphabet.sort();
     renderAlphabet();
+    validateInputWord();
     updateDeterminismIndicator();
 }
 
@@ -555,6 +557,23 @@ cy.on('cxttap', function (event) {
         ctxMenu.style.width = '100px';
         ctxMenu.style.display = 'block';
     }
+});
+
+function validateInputWord() {
+    const inputField = document.getElementById('input-word');
+    const errorText = document.getElementById('input-word-error-text');
+    const illegalChars = [...new Set(inputField.value.split('').filter(char => !alphabet.includes(char)))];
+    if (illegalChars.length > 0) {
+        // TODO: disable play button
+        errorText.style.display = 'block';
+        errorText.textContent = `${illegalChars.map(char => `'${char}'`).join(', ')} not in alphabet`;
+    } else {
+        errorText.style.display = 'none';
+    }
+}
+
+document.getElementById('input-word').addEventListener('input', function () {
+    validateInputWord();
 });
 
 document.addEventListener('DOMContentLoaded', function () {
