@@ -143,6 +143,7 @@ function phantomStates() {
 function addState() {
     const newName = uniqueStateName();
     cy.add({ group: 'nodes', data: { id: newName, label: newName } });
+    updateDeterminismIndicator();
     return cy.getElementById(newName);
 }
 
@@ -160,6 +161,7 @@ cy.on('tap', 'node', function (event) {
             phantomEdges().forEach(edge => edge.removeClass('phantom-edge'));
         }
         isCreatingTransition = false;
+        updateDeterminismIndicator();
         clearSelection();
     } else {
         const state = event.target;
@@ -217,6 +219,7 @@ window.addEventListener('keydown', function (event) {
         if (event.key === 'Escape') {
             phantomStates().forEach(state => state.remove());
             phantomEdges().forEach(edge => edge.remove());
+            updateDeterminismIndicator();
             isCreatingTransition = false;
         }
     }
@@ -262,6 +265,7 @@ document.addEventListener('mousemove', function (event) {
                 cy.add({ group: 'edges', data: { id: data.id, source: data.source, target: state.id(), label: data.label }, classes: 'phantom-edge' });
             })
             phantomState.addClass('invisible');
+            updateDeterminismIndicator();
             return;
         }
     }
@@ -271,6 +275,7 @@ document.addEventListener('mousemove', function (event) {
         cy.add({ group: 'edges', data: { id: data.id, source: data.source, target: phantomState.id(), label: data.label }, classes: 'phantom-edge' });
     });
     phantomState.removeClass('invisible');
+    updateDeterminismIndicator();
 });
 
 let addAlphabetItemInputVisible = false;
@@ -320,6 +325,8 @@ function renderAlphabet() {
             listItem.remove();
             // TODO: adjust this for transitions with multiple symbols
             cy.edges().filter(edge => edge.data().label === symbol).forEach(edge => edge.remove());
+            // TODO: error when alphabet becomes empty
+            updateDeterminismIndicator();
         })
         alphabetContainer.appendChild(listItem);
     });
@@ -329,6 +336,7 @@ function addAlphabetItem(symbol) {
     alphabet.push(symbol);
     alphabet.sort();
     renderAlphabet();
+    updateDeterminismIndicator();
 }
 
 document.querySelector('#add-alphabet-item-input').addEventListener('input', function (event) {
@@ -357,6 +365,66 @@ document.addEventListener('click', function (event) {
     }
 });
 
+function updateDeterminismIndicator() {
+    function setIndicatorDFA() {
+        const indicator = document.getElementById('determinism-indicator');
+        indicator.classList.remove('text-bg-primary');
+        indicator.classList.add('text-bg-success');
+        indicator.textContent = 'DFA';
+    }
+    
+    function setIndicatorNFA() {
+        const indicator = document.getElementById('determinism-indicator');
+        indicator.classList.remove('text-bg-success');
+        indicator.classList.add('text-bg-primary');
+        indicator.textContent = 'NFA';
+    }
+    
+    function isDeterministic() {
+        const transitionsMap = new Map();
+        
+        let startingStateFound = false;
+        for (const state of cy.nodes()) {
+            if (state.classes().includes('start')) {
+                if (startingStateFound) {
+                    return false;
+                }
+                startingStateFound = true;
+            }
+            transitionsMap.set(state.id(), new Map());
+        }
+        
+        for (const edge of cy.edges()) {
+            const source = edge.data().source;
+            const target = edge.data().target;
+            console.log(source, target);
+            // TODO: adjust implementation for transitions with multiple symbols
+            const symbol = edge.data().label;
+            const symbolsMap = transitionsMap.get(source);
+            if (symbolsMap.has(symbol)) {
+                return false;
+            }
+            symbolsMap.set(symbol, target);
+        }
+        
+        for (const [_, symbolsSet] of transitionsMap.entries()) {
+            for (const symbol of alphabet) {
+                if (!symbolsSet.has(symbol)) {
+                    return false;
+                }
+            }
+        }
+        
+        return true;
+    }
+    
+    if (isDeterministic()) {
+        setIndicatorDFA();
+    } else {
+        setIndicatorNFA();
+    }
+}
+
 document.querySelector('#sidebar').addEventListener('click', function () {
     clearSelection();
 });
@@ -373,17 +441,20 @@ function initContextMenuListeners() {
         selectedStates.forEach(state => state.remove());
         clearSelection();
         clearContextMenus();
+        updateDeterminismIndicator();
     });
     document.getElementById('edge-ctx-delete').addEventListener('click', function () {
         selectedEdges.forEach(edge => edge.remove());
         clearSelection();
         clearContextMenus();
+        updateDeterminismIndicator();
     });
     document.getElementById('common-ctx-delete').addEventListener('click', function () {
         selectedEdges.forEach(edge => edge.remove());
         selectedStates.forEach(state => state.remove());
         clearSelection();
         clearContextMenus();
+        updateDeterminismIndicator();
     });
     document.getElementById('canvas-ctx-new-state').addEventListener('click', function () {
         const ctxMenu = document.getElementById('canvas-context-menu');
@@ -413,6 +484,7 @@ function showStateContextMenu(event) {
         if (startCheckbox.checked) {
             selectedStates.forEach(state => state.addClass('start'));
         } else {
+            // TODO: error when there are no start states
             selectedStates.forEach(state => state.removeClass('start'));
         }
     };
@@ -488,6 +560,7 @@ cy.on('cxttap', function (event) {
 document.addEventListener('DOMContentLoaded', function () {
     initContextMenuListeners();
     renderAlphabet();
+    updateDeterminismIndicator();
 });
 
 // TODO: undo/redo
