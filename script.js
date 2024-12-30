@@ -399,7 +399,6 @@ function updateDeterminismIndicator() {
         for (const edge of cy.edges()) {
             const source = edge.data().source;
             const target = edge.data().target;
-            console.log(source, target);
             // TODO: adjust implementation for transitions with multiple symbols
             const symbol = edge.data().label;
             const symbolsMap = transitionsMap.get(source);
@@ -567,14 +566,86 @@ function validateInputWord() {
         // TODO: disable play button
         errorText.style.display = 'block';
         errorText.textContent = `${illegalChars.map(char => `'${char}'`).join(', ')} not in alphabet`;
+        return false;
     } else {
         errorText.style.display = 'none';
+        return true;
     }
 }
 
 document.getElementById('input-word').addEventListener('input', function () {
     validateInputWord();
 });
+
+let simulationSpeed = 1; // integer between 1-15
+let simulationWordRemainder = '';
+let simulationCurrentStates = [];
+let isSimulationPlaying = false;
+// TODO: show previous state(s) and transition(s) in simulation?
+
+document.getElementById('simulation-speed').addEventListener('input', function (event) {
+    simulationSpeed = Number(event.target.value);
+});
+
+function simulationSleepTime() {
+    switch (simulationSpeed) {
+        case 1: return 5000;
+        case 2: return 4000;
+        case 3: return 3000;
+        case 4: return 2000;
+        case 5: return 1000;
+        case 6: return 800;
+        case 7: return 700;
+        case 8: return 600;
+        case 9: return 500;
+        case 10: return 400;
+        case 11: return 300;
+        case 12: return 240;
+        case 13: return 120;
+        case 14: return 60;
+        default: return 0;
+    }
+}
+
+document.getElementById('simulation-play-button').addEventListener('click', async function () {
+    if (isSimulationPlaying) {
+        // TODO: pause simulation
+        return;
+    }
+    if (!validateInputWord()) {
+        return;
+    }
+    simulationSpeed = Number(document.getElementById('simulation-speed').value);
+    // TODO: make sure automaton is valid (i.e. has at least one start state and at least one symbol in the alphabet)
+    isSimulationPlaying = true;
+    document.getElementById('simulation-play-button').innerHTML = '<span class="fas fa-pause"></span>';
+    simulationWordRemainder = document.getElementById('input-word').value;
+    cy.nodes().forEach(state => state.removeClass('current-simulation-state'));
+    simulationCurrentStates = cy.nodes().filter(state => state.classes().includes('start'));
+    simulationCurrentStates.forEach(state => state.addClass('current-simulation-state'));
+    while (simulationWordRemainder !== '') {
+        await new Promise(resolve => setTimeout(resolve, simulationSleepTime())); // sleep
+        const symbol = simulationWordRemainder[0];
+        simulationCurrentStates = cy.edges()
+            // TODO: adjust implementation for transitions with multiple symbols
+            .filter(edge => simulationCurrentStates.map(state => state.id()).includes(edge.data().source) && edge.data().label === symbol)
+            .map(edge => cy.nodes().find(state => state.id() === edge.data().target));
+        cy.nodes().forEach(state => state.removeClass('current-simulation-state'));
+        simulationCurrentStates.forEach(state => state.addClass('current-simulation-state'));
+        simulationWordRemainder = simulationWordRemainder.substring(1);
+    }
+    document.getElementById('simulation-play-button').innerHTML = '<span class="fas fa-play"></span>';
+    isSimulationPlaying = false;
+    // TODO: output whether the word was accepted or not
+});
+
+document.getElementById('simulation-stop-button').addEventListener('click', function () {
+    simulationWordRemainder = '';
+    simulationCurrentStates = [];
+    cy.nodes().forEach(state => state.removeClass('current-simulation-state'));
+    document.getElementById('simulation-play-button').innerHTML = '<span class="fas fa-play"></span>';
+    isSimulationPlaying = false;
+})
 
 document.addEventListener('DOMContentLoaded', function () {
     initContextMenuListeners();
