@@ -305,7 +305,7 @@ function renderAlphabet() {
     alphabet.forEach(symbol => {
         const listItem = document.createElement('button');
         listItem.classList.add('btn', 'btn-light', 'alphabet-item', 'me-2');
-        listItem.style.width = '36px';
+        listItem.style.minWidth = '36px';
         listItem.style.display = 'flex';
         listItem.style.justifyContent = 'center';
         listItem.style.alignItems = 'center';
@@ -346,9 +346,11 @@ document.querySelector('#add-alphabet-item-input').addEventListener('input', fun
     if (symbol.length === 1) {
         if (symbol.trim() === '') {
             // TODO: error, symbol must not be whitespace
+            return;
         }
         if (alphabet.includes(symbol)) {
             // TODO: error, no duplicates allowed
+            return;
         }
         document.querySelector('#add-alphabet-item-input-container').classList.add('d-none');
         addAlphabetItemInputVisible = false;

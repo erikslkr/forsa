@@ -6,9 +6,3 @@ body, html {
 #cy {
     height: 100vh;
 }
-
-#determinism-indicator-container {
-    position: fixed;
-    bottom: 8px;
-    left: 8px;
-}

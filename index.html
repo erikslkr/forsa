@@ -15,28 +15,30 @@
 </head>
 <body>
     <div id="determinism-indicator-container">
-        <span id="determinism-indicator" class="badge text-bg-success bg">DFA</span>
+        <span id="determinism-indicator" class="badge text-bg-success bg position-fixed bottom-0 left-0 m-2">DFA</span>
     </div>
     <div class="row">
-        <div class="col-10" id="cy"></div>
-        <div id="state-context-menu" class="dropdown-menu" style="display: none;">
-            <label class="dropdown-item">
-                <input type="checkbox" id="state-ctx-start"> Starting
-            </label>
-            <label class="dropdown-item">
-                <input type="checkbox" id="state-ctx-accepting"> Accepting
-            </label>
-            <hr class="dropdown-divider"/>
-            <a class="dropdown-item text-danger" href="#" id="state-ctx-delete">Delete</a>
-        </div>
-        <div id="edge-context-menu" class="dropdown-menu" style="display: none;">
-            <a class="dropdown-item text-danger" href="#" id="edge-ctx-delete">Delete</a>
-        </div>
-        <div id="common-context-menu" class="dropdown-menu" style="display: none;">
-            <a class="dropdown-item text-danger" href="#" id="common-ctx-delete">Delete</a>
-        </div>
-        <div id="canvas-context-menu" class="dropdown-menu" style="display: none;">
-            <a class="dropdown-item" href="#" id="canvas-ctx-new-state">New State</a>
+        <div class="col-10">
+            <div id="cy"></div>
+            <div id="state-context-menu" class="dropdown-menu" style="display: none;">
+                <label class="dropdown-item">
+                    <input type="checkbox" id="state-ctx-start"> Starting
+                </label>
+                <label class="dropdown-item">
+                    <input type="checkbox" id="state-ctx-accepting"> Accepting
+                </label>
+                <hr class="dropdown-divider"/>
+                <a class="dropdown-item text-danger" href="#" id="state-ctx-delete">Delete</a>
+            </div>
+            <div id="edge-context-menu" class="dropdown-menu" style="display: none;">
+                <a class="dropdown-item text-danger" href="#" id="edge-ctx-delete">Delete</a>
+            </div>
+            <div id="common-context-menu" class="dropdown-menu" style="display: none;">
+                <a class="dropdown-item text-danger" href="#" id="common-ctx-delete">Delete</a>
+            </div>
+            <div id="canvas-context-menu" class="dropdown-menu" style="display: none;">
+                <a class="dropdown-item" href="#" id="canvas-ctx-new-state">New State</a>
+            </div>
         </div>
         <div id="sidebar" class="col-2 p-0 row bg-dark rounded">
             <div class="accordion col-12 p-0">
